@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*- 
 
 from pyspark import SparkContext, SparkConf
-
-
+from record import Record
+import random
 
 class Practice():
 
@@ -116,6 +116,55 @@ class Practice():
         print("Left : %s" % result1.collect())
         print("Right : %s" % result2.collect())
 
+    def doSubtractByKey(self, sc):
+        rdd1 = sc.parallelize(["a", "b"]).map(lambda v : (v, 1))
+        rdd2 = sc.parallelize(["b"]).map(lambda v : (v, 1))
+        result = rdd1.subtractByKey(rdd2)
+        print(result.collect())
+
+    def doReduceByKey(self, sc):
+        rdd = sc.parallelize(["a", "b", "b"]).map(lambda v : (v, 1))
+        result = rdd.reduceByKey(lambda v1, v2 : v1 + v2)
+        print(result.collect())
+
+    def doFoldByKey(self, sc):
+        rdd = sc.parallelize(["a", "b", "c"]).map(lambda v : (v, 1))
+        result = rdd.foldByKey(0, lambda v1, v2 : v1 + v2)
+        print(result.collect())
+
+    def doCombineByKey(self, sc):
+        rdd = sc.parallelize([("Math", 100), ("Eng", 80), ("Math", 50), ("Eng", 70), ("Eng", 90)])
+        result = rdd.combineByKey(lambda v: createCombiner(v), lambda c, v: mergeValue(c, v),
+                                  lambda c1, c2: mergeCombiners(c1, c2))
+        print('Math', result.collectAsMap()['Math'], 'Eng', result.collectAsMap()['Eng'])
+
+        
+    def doPipe(self, sc):
+        rdd = sc.parallelize(["1,2,3", "4,5,6", "7,8,9"])
+        result = rdd.pipe("cut -f 1,3 -d ,")
+        print(result.collect())
+    
+    def doCoalescePartition(self, sc):
+        rdd1 = sc.parallelize(list(range(1, 11)), 10)
+        rdd2 = rdd1.coalesce(5)
+        rdd3 = rdd2.repartition(10)
+        print('Partition size %d' % rdd1.getNumPartitions())
+        print('Partition size %d' % rdd2.getNumPartitions())
+        print('Partition size %d' % rdd3.getNumPartitions())
+
+    def doRepartitionAndSortWithinPartitions(self, sc):
+        data = [random.randrange(1, 100) for i in range(0, 10)]
+        rdd1 = sc.parallelize(data).map(lambda v: (v, "-"))
+        rdd2 = rdd1.repartitionAndSortWithinPartitions(3, lambda x: x)
+        rdd3 = rdd2.foreachPartition(lambda values: list(values))
+        print(rdd3)
+
+    def doPartitionBy(self, sc):
+        rdd1 = sc.parallelize([("apple", 1), ("mouse", 1), ("monitor", 1)], 5)
+        rdd2 = rdd1.partitionBy(3)
+        print('rdd1 : %d, rdd2 : %d' % (rdd1.getNumPartitions(), rdd2.getNumPartitions()))
+
+
 if __name__ == "__main__":
     conf = SparkConf()
     conf.set("spark.driver.host", "127.0.0.1")
@@ -137,4 +186,11 @@ if __name__ == "__main__":
     #obj.doUnion(sc)
     #obj.doIntersection(sc)
     #obj.doJoin(sc)
-    obj.doLeftRightOuterJoin(sc)
+    #obj.doLeftRightOuterJoin(sc)
+    #obj.doSubtractByKey(sc)
+    #obj.doReduceByKey(sc)
+    #obj.doFoldByKey(sc)
+    #obj.doPipe(sc)
+    #obj.doCoalescePartition(sc)
+    #obj.doRepartitionAndSortWithinPartitions(sc)
+    obj.doPartitionBy(sc)
