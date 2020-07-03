@@ -164,6 +164,106 @@ class Practice():
         rdd2 = rdd1.partitionBy(3)
         print('rdd1 : %d, rdd2 : %d' % (rdd1.getNumPartitions(), rdd2.getNumPartitions()))
 
+    def doFilter(self, sc):
+        rdd1 = sc.parallelize(range(1, 6))
+        rdd2 = rdd1.filter(lambda i : i > 2)
+        print(rdd2.collect())
+
+    def doSortByKey(self, sc):
+        rdd = sc.parallelize([("q", 1), ("z", 1), ("a", 1)])
+        result = rdd.sortByKey()
+        print(result.collect())
+    
+    def doKeysValues(self, sc):
+        rdd = sc.parallelize([("k1", "v1"), ("k2", "v2"), ("k3", "v3")])
+        print(rdd.keys().collect())
+        print(rdd.values().collect())
+
+    def doFirst(self, sc):
+        rdd = sc.parallelize([5, 4, 1])
+        result = rdd.first()
+        print(result)
+
+    def doTake(self, sc):
+        rdd = sc.parallelize([i for i in range(1, 21)], 5)
+        result = rdd.take(5)
+        print(result)
+
+    def doCountByValue(self, sc):
+        rdd = sc.parallelize([1, 1, 2, 3, 3])
+        result = rdd.countByValue()
+        for k, v in result.items():
+            print(k, v)
+
+    def doReduce(self, sc):
+        rdd = sc.parallelize(range(1, 11), 3)
+        result = rdd.reduce(lambda v1, v2 : v1 + v2)
+        print(result)
+
+    def doFold(self, sc):
+        rdd = sc.parallelize(range(1, 11), 3)
+        result = rdd.fold(0, lambda v1, v2 : v1 + v2)
+        print(result)
+    
+    def doSum(self, sc):
+        rdd = sc.parallelize(range(1, 11))
+        result = rdd.sum()
+        print(result)
+
+    # def doForEachAndPartitions(self, sc):
+    #     def sideEffect(values):
+    #         print('Partition Side Effect')
+    #         for v in values:
+    #             print('Value Side Effect : %s' % v)
+        
+    #     rdd = sc.parallelize(range(1, 11), 3)
+    #     result = rdd.foreach(lambda v : print('Value Side Effect : %s' % v))
+    #     result = rdd.foreachPartition(sideEffect)
+
+    def saveAndLoadTextFile(self, sc):
+        rdd = sc.parallelize(range(1, 1000), 3)
+        codec = "org.apache.hadoop.io.compress.GzipCodec"
+        # save
+        rdd.saveAsTextFile("/home/sjy049/pyspark_practice/spark2_big/test/sub1")
+        # save(gzip)
+        rdd.saveAsTextFile("/home/sjy049/pyspark_practice/spark2_big/test/sub2", codec)
+        # load
+        rdd2 = sc.textFile("/home/sjy049/pyspark_practice/spark2_big/test/sub1")
+        print(rdd2.take(10))
+
+    def saveAndLoadObjectFile(self, sc):
+        rdd = sc.parallelize(range(1, 1000), 3)
+        # save
+        # 아래 경로는 실제 저장 경로로 변경하여 테스트
+        rdd.saveAsPickleFile("/home/sjy049/pyspark_practice/spark2_big/test/")
+        # load
+        # 아래 경로는 실제 저장 경로로 변경하여 테스트
+        rdd2 = sc.pickleFile("/home/sjy049/pyspark_practice/spark2_big/test/")
+        print(rdd2.take(10))
+
+    def saveAndLoadSequenceFile(self, sc):
+        # 아래 경로는 실제 저장 경로로 변경하여 테스트
+        path = "/home/sjy049/pyspark_practice/spark2_big/test"
+
+        outputFormatClass = "org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat"
+        inputFormatClass = "org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat"
+        keyClass = "org.apache.hadoop.io.Text"
+        valueClass = "org.apache.hadoop.io.IntWritable"
+        conf = "org.apache.hadoop.conf.Configuration"
+        rdd1 = sc.parallelize(["a", "b", "c", "b", "c"])
+        rdd2 = rdd1.map(lambda x: (x, 1))
+        # save
+        rdd2.saveAsNewAPIHadoopFile(path, outputFormatClass, keyClass, valueClass)
+        # load
+        rdd3 = sc.newAPIHadoopFile(path, inputFormatClass, keyClass, valueClass)
+        for k, v in rdd3.collect():
+            print(k, v)
+
+    def testBroadcaset(self, sc):
+        bu = sc.broadcast(set(["u1", "u2"]))
+        rdd = sc.parallelize(["u1", "u3", "u3", "u4", "u5", "u6"], 3)
+        result = rdd.filter(lambda v: v in bu.value)
+        print(result.collect())
 
 if __name__ == "__main__":
     conf = SparkConf()
@@ -193,4 +293,19 @@ if __name__ == "__main__":
     #obj.doPipe(sc)
     #obj.doCoalescePartition(sc)
     #obj.doRepartitionAndSortWithinPartitions(sc)
-    obj.doPartitionBy(sc)
+    #obj.doPartitionBy(sc)
+    #obj.doFilter(sc)
+    #obj.doSortByKey(sc)
+    #obj.doKeysValues(sc)
+    #obj.doFirst(sc)
+    #obj.doTake(sc)
+    #obj.doTakeSample(sc)
+    #obj.doCountByValue(sc)
+    #obj.doReduce(sc)
+    #obj.doFold(sc)
+    #obj.doSum(sc)
+    #obj.doForEachAndPartitions(sc)
+    #obj.saveAndLoadTextFile(sc)
+    #obj.saveAndLoadObjectFile(sc)
+    #obj.saveAndLoadSequenceFile(sc)
+    #obj.testBroadcaset(sc)
